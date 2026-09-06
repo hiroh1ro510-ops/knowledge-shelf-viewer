@@ -1,0 +1,65 @@
+---
+import { getCollection } from "astro:content";
+import Base from "../layouts/Base.astro";
+import TabNav from "../components/TabNav.astro";
+import ItemCard from "../components/ItemCard.astro";
+import EmptyState from "../components/EmptyState.astro";
+
+const allItems = await getCollection("items");
+const items = allItems.sort(
+  (a, b) => new Date(b.data.created_at).getTime() - new Date(a.data.created_at).getTime()
+);
+const itemsJson = JSON.stringify(items.map(i => ({ id: i.id, status: i.data.status })));
+---
+<Base title="リサーチ | Knowledge Shelf">
+  <TabNav active="research" />
+
+  <!-- StatusFilter（クライアントサイドJSで実装 SDD §6 CS-3対応） -->
+  <div class="flex flex-wrap gap-2 mb-6" id="filter-bar">
+    {["all","pending","neta","knowledge","skill","material","out"].map((s) => (
+      <button
+        data-status={s}
+        class="filter-btn px-3 py-1 rounded-full text-sm border border-gray-300 hover:bg-gray-100"
+        class:list={[s === "all" ? "bg-blue-500 text-white border-blue-500" : ""]}
+      >
+        {s === "all" ? "すべて" : s === "pending" ? "判断待ち" : s}
+      </button>
+    ))}
+  </div>
+
+  {items.length === 0
+    ? <EmptyState message="リサーチアイテムがありません。Chatwork に URL を投稿してください。" />
+    : (
+      <div class="grid gap-4 sm:grid-cols-2" id="items-grid">
+        {items.map((item) => (
+          <div data-item-id={item.id} data-status={item.data.status}>
+            <ItemCard item={item} />
+          </div>
+        ))}
+      </div>
+    )
+  }
+</Base>
+
+<script define:vars={{ itemsJson }}>
+  const items = JSON.parse(itemsJson);
+  const btns = document.querySelectorAll(".filter-btn");
+  const grid = document.getElementById("items-grid");
+
+  function filter(status) {
+    if (!grid) return;
+    grid.querySelectorAll("[data-item-id]").forEach((el) => {
+      const s = el.getAttribute("data-status");
+      el.style.display = (status === "all" || s === status) ? "" : "none";
+    });
+    btns.forEach((b) => {
+      const active = b.getAttribute("data-status") === status;
+      b.className = b.className.replace(/ bg-blue-500 text-white border-blue-500/g, "");
+      if (active) b.classList.add("bg-blue-500", "text-white", "border-blue-500");
+    });
+  }
+
+  btns.forEach((btn) => {
+    btn.addEventListener("click", () => filter(btn.getAttribute("data-status") || "all"));
+  });
+</script>

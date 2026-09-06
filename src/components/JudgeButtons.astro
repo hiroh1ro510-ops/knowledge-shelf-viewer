@@ -1,0 +1,42 @@
+---
+export interface Props {
+  itemId: string;
+  title: string;
+  repoOwner?: string;
+  knowledgeRepo?: string;
+}
+const {
+  itemId,
+  title,
+  repoOwner = "YOUR_GITHUB_USERNAME",
+  knowledgeRepo = "my-knowledge-base",
+} = Astro.props;
+
+const encTitle = encodeURIComponent(title);
+const encId = encodeURIComponent(itemId);
+const labels = [
+  { key: "neta", label: "ネタ", color: "bg-purple-100 text-purple-700 hover:bg-purple-200" },
+  { key: "knowledge", label: "ナレッジ", color: "bg-blue-100 text-blue-700 hover:bg-blue-200" },
+  { key: "skill", label: "スキル候補", color: "bg-green-100 text-green-700 hover:bg-green-200" },
+  { key: "material", label: "素材", color: "bg-orange-100 text-orange-700 hover:bg-orange-200" },
+  { key: "out", label: "対象外", color: "bg-gray-100 text-gray-600 hover:bg-gray-200" },
+];
+---
+<div class="mt-6 border-t pt-4">
+  <p class="text-sm font-medium text-gray-600 mb-3">判断</p>
+  <div class="flex flex-wrap gap-2">
+    {labels.map(({ key, label, color }) => {
+      const url = `https://github.com/${repoOwner}/${knowledgeRepo}/issues/new?template=knowledge.yml&title=${encTitle}&body=item_id%3A+${encId}%0Astatus%3A+${key}`;
+      return (
+        <a
+          href={url}
+          target="_blank"
+          rel="noopener"
+          class={`px-4 py-2 rounded-full text-sm font-medium transition-colors ${color}`}
+        >
+          {label}
+        </a>
+      );
+    })}
+  </div>
+</div>

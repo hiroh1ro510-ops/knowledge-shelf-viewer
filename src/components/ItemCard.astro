@@ -1,0 +1,36 @@
+---
+export interface Props {
+  item: any;
+}
+const { item } = Astro.props;
+const d = item.data;
+const typeIcon: Record<string, string> = {
+  youtube: "🎬", pdf: "📄", web: "🌐", note: "✍️", memo: "📝",
+};
+const statusColor: Record<string, string> = {
+  pending: "bg-yellow-100 text-yellow-700",
+  neta: "bg-purple-100 text-purple-700",
+  knowledge: "bg-blue-100 text-blue-700",
+  skill: "bg-green-100 text-green-700",
+  material: "bg-orange-100 text-orange-700",
+  out: "bg-gray-100 text-gray-500",
+};
+---
+<a href={`/items/${item.id}`} class="block bg-white rounded-lg border border-gray-200 p-4 hover:shadow-md transition-shadow">
+  <div class="flex items-start gap-3">
+    <span class="text-2xl">{typeIcon[d.source_type] ?? "📎"}</span>
+    <div class="flex-1 min-w-0">
+      <p class="text-xs text-gray-400 mb-1">{d.id}</p>
+      <h3 class="font-semibold text-gray-900 truncate">{d.title}</h3>
+      <p class="text-sm text-gray-600 mt-1 line-clamp-2">{d.one_line}</p>
+      <div class="flex flex-wrap gap-1 mt-2">
+        {d.suggested_tags.map((tag: string) => (
+          <span class="text-xs px-2 py-0.5 rounded-full bg-indigo-50 text-indigo-600">{tag}</span>
+        ))}
+        <span class={`text-xs px-2 py-0.5 rounded-full ml-auto ${statusColor[d.status] ?? ""}`}>
+          {d.status}
+        </span>
+      </div>
+    </div>
+  </div>
+</a>

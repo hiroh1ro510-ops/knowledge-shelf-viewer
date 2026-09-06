@@ -1,0 +1,23 @@
+---
+import { getCollection } from "astro:content";
+import Base from "../layouts/Base.astro";
+import TabNav from "../components/TabNav.astro";
+import ItemCard from "../components/ItemCard.astro";
+import EmptyState from "../components/EmptyState.astro";
+
+const allItems = await getCollection("items");
+const skills = allItems.filter((i) => i.data.status === "skill").sort(
+  (a, b) => new Date(b.data.created_at).getTime() - new Date(a.data.created_at).getTime()
+);
+---
+<Base title="スキル | Knowledge Shelf">
+  <TabNav active="skills" />
+  {skills.length === 0
+    ? <EmptyState message="スキル候補がありません。詳細ページの判断ボタンから登録できます。" />
+    : (
+      <div class="grid gap-4 sm:grid-cols-2">
+        {skills.map((item) => <ItemCard item={item} />)}
+      </div>
+    )
+  }
+</Base>

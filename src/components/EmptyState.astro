@@ -1,0 +1,10 @@
+---
+export interface Props {
+  message?: string;
+}
+const { message = "まだコンテンツがありません。Chatwork に URL を投稿してください。" } = Astro.props;
+---
+<div class="text-center py-16 text-gray-400">
+  <p class="text-4xl mb-4">📭</p>
+  <p class="text-sm">{message}</p>
+</div>

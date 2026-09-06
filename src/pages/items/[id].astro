@@ -1,0 +1,84 @@
+---
+import { getCollection, render } from "astro:content";
+import Base from "../../layouts/Base.astro";
+import JudgeButtons from "../../components/JudgeButtons.astro";
+
+export async function getStaticPaths() {
+  const items = await getCollection("items");
+  return items.map((item) => ({ params: { id: item.id }, props: { item } }));
+}
+
+const { item } = Astro.props;
+const d = item.data;
+const { Content } = await render(item);
+
+const typeIcon: Record<string, string> = {
+  youtube: "🎬", pdf: "📄", web: "🌐", note: "✍️", memo: "📝",
+};
+---
+<Base title={`${d.title} | Knowledge Shelf`}>
+  <div class="mb-4">
+    <a href="/" class="text-sm text-blue-600 hover:underline">← 本棚に戻る</a>
+  </div>
+
+  <article class="bg-white rounded-lg border border-gray-200 p-6">
+    <!-- ヘッダー -->
+    <div class="flex items-start gap-3 mb-6">
+      <span class="text-3xl">{typeIcon[d.source_type] ?? "📎"}</span>
+      <div>
+        <p class="text-xs text-gray-400">{d.id} · {d.created_at.slice(0, 10)}</p>
+        <h1 class="text-xl font-bold text-gray-900">{d.title}</h1>
+        <p class="text-gray-600 mt-1">{d.one_line}</p>
+      </div>
+    </div>
+
+    <!-- 3行要約 -->
+    <section class="mb-6">
+      <h2 class="text-sm font-semibold text-gray-500 mb-2">📌 3行まとめ</h2>
+      <ul class="space-y-1">
+        {d.three_lines.map((line: string) => (
+          <li class="text-sm text-gray-700 pl-4 border-l-2 border-blue-300">{line}</li>
+        ))}
+      </ul>
+    </section>
+
+    <!-- YouTube 埋め込み -->
+    {d.embed_url && (
+      <section class="mb-6">
+        <h2 class="text-sm font-semibold text-gray-500 mb-2">🎬 動画</h2>
+        <div class="aspect-video">
+          <iframe
+            src={d.embed_url}
+            title={d.title}
+            loading="lazy"
+            allowfullscreen
+            class="w-full h-full rounded"
+          />
+        </div>
+      </section>
+    )}
+
+    <!-- スクショギャラリー -->
+    {d.screenshots.length > 0 && (
+      <section class="mb-6">
+        <h2 class="text-sm font-semibold text-gray-500 mb-2">📷 スクリーンショット</h2>
+        <div class="grid grid-cols-3 gap-2">
+          {d.screenshots.map((src: string) => (
+            <a href={src} target="_blank">
+              <img src={src} alt="" loading="lazy" class="rounded border hover:opacity-90" />
+            </a>
+          ))}
+        </div>
+      </section>
+    )}
+
+    <!-- 詳細要約・文字起こし -->
+    <section class="mb-6 prose prose-sm max-w-none">
+      <h2 class="text-sm font-semibold text-gray-500 mb-2">📖 詳細</h2>
+      <Content />
+    </section>
+
+    <!-- 判断ボタン -->
+    <JudgeButtons itemId={d.id} title={d.title} />
+  </article>
+</Base>
