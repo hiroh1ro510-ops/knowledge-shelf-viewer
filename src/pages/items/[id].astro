@@ -15,70 +15,249 @@ const { Content } = await render(item);
 const typeIcon: Record<string, string> = {
   youtube: "🎬", pdf: "📄", web: "🌐", note: "✍️", memo: "📝",
 };
+
+const statusColor: Record<string, string> = {
+  pending:   "bg-yellow-50 text-yellow-700 border-yellow-200",
+  neta:      "bg-purple-50 text-purple-700 border-purple-200",
+  knowledge: "bg-blue-50 text-blue-700 border-blue-200",
+  skill:     "bg-green-50 text-green-700 border-green-200",
+  material:  "bg-orange-50 text-orange-700 border-orange-200",
+  out:       "bg-gray-50 text-gray-500 border-gray-200",
+};
+
+const statusLabel: Record<string, string> = {
+  pending: "未分類", neta: "ネタ", knowledge: "ナレッジ", skill: "スキル候補", material: "素材", out: "対象外",
+};
+
+function tagColor(tag: string): string {
+  const palette = [
+    "bg-blue-50 text-blue-700",
+    "bg-green-50 text-green-700",
+    "bg-purple-50 text-purple-700",
+    "bg-orange-50 text-orange-700",
+    "bg-red-50 text-red-700",
+    "bg-teal-50 text-teal-700",
+  ];
+  let h = 0;
+  for (let i = 0; i < tag.length; i++) h = (h * 31 + tag.charCodeAt(i)) & 0xffff;
+  return palette[h % palette.length];
+}
+
+const dateStr = d.created_at ? d.created_at.slice(0, 10) : "";
+const isYoutube = d.source_type === "youtube";
 ---
+
 <Base title={`${d.title} | Knowledge Shelf`}>
-  <div class="mb-4">
-    <a href="/" class="text-sm text-blue-600 hover:underline">← 本棚に戻る</a>
+  <!-- 戻るリンク -->
+  <div class="mb-5">
+    <a href="/" class="inline-flex items-center gap-1.5 text-sm text-gray-500 hover:text-blue-600 transition-colors">
+      <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+        <path d="M15 18l-6-6 6-6"/>
+      </svg>
+      本棚に戻る
+    </a>
   </div>
 
-  <article class="bg-white rounded-lg border border-gray-200 p-6">
-    <!-- ヘッダー -->
-    <div class="flex items-start gap-3 mb-6">
-      <span class="text-3xl">{typeIcon[d.source_type] ?? "📎"}</span>
-      <div>
-        <p class="text-xs text-gray-400">{d.id} · {d.created_at.slice(0, 10)}</p>
-        <h1 class="text-xl font-bold text-gray-900">{d.title}</h1>
-        <p class="text-gray-600 mt-1">{d.one_line}</p>
+  <!-- 2カラムレイアウト -->
+  <div class="flex flex-col lg:flex-row gap-6 items-start">
+
+    <!-- 左カラム: メインコンテンツ -->
+    <div class="flex-1 min-w-0 flex flex-col gap-6">
+
+      <!-- タイトルブロック -->
+      <div class="bg-white rounded-xl border border-gray-100 p-6" style="box-shadow: 0 1px 3px rgba(0,0,0,.05);">
+        <div class="flex items-center gap-2 mb-2">
+          <span class="text-2xl">{typeIcon[d.source_type] ?? "📎"}</span>
+          <span class="text-xs text-gray-400">{dateStr}</span>
+        </div>
+        <h1 class="text-xl font-bold text-gray-900 leading-snug mb-2">{d.title}</h1>
+        {d.one_line && (
+          <p class="text-sm text-gray-500">{d.one_line}</p>
+        )}
       </div>
+
+      <!-- YouTube 埋め込み -->
+      {isYoutube && d.embed_url && (
+        <div class="bg-white rounded-xl border border-gray-100 overflow-hidden sticky top-4 z-10" style="box-shadow: 0 1px 3px rgba(0,0,0,.05);">
+          <div class="w-full" style="position: relative; padding-bottom: 56.25%;">
+            <iframe
+              id="yt-player"
+              data-base={d.embed_url}
+              src={`${d.embed_url}?enablejsapi=1`}
+              title={d.title}
+              loading="lazy"
+              allowfullscreen
+              allow="autoplay; encrypted-media"
+              style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; border: 0;"
+            />
+          </div>
+        </div>
+      )}
+
+      <!-- 3点要約 -->
+      {d.three_lines && d.three_lines.length > 0 && (
+        <div class="bg-white rounded-xl border border-gray-100 p-6" style="box-shadow: 0 1px 3px rgba(0,0,0,.05);">
+          <h2 class="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-3">3点まとめ</h2>
+          <ul class="flex flex-col gap-3">
+            {d.three_lines.map((line: string, i: number) => (
+              <li class="flex gap-3 items-start">
+                <span class="shrink-0 w-6 h-6 rounded-full bg-blue-600 text-white text-xs font-bold flex items-center justify-center mt-0.5">{i + 1}</span>
+                <p class="text-sm text-gray-700 leading-relaxed">{line}</p>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+
+      <!-- セクション詳細 -->
+      <div class="bg-white rounded-xl border border-gray-100 p-6" style="box-shadow: 0 1px 3px rgba(0,0,0,.05);">
+        <h2 class="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-4">詳細</h2>
+        <div class="prose-custom">
+          <Content />
+        </div>
+      </div>
+
     </div>
 
-    <!-- 3行要約 -->
-    <section class="mb-6">
-      <h2 class="text-sm font-semibold text-gray-500 mb-2">📌 3行まとめ</h2>
-      <ul class="space-y-1">
-        {d.three_lines.map((line: string) => (
-          <li class="text-sm text-gray-700 pl-4 border-l-2 border-blue-300">{line}</li>
-        ))}
-      </ul>
-    </section>
+    <!-- 右カラム: サイドバー -->
+    <aside class="w-full lg:w-72 shrink-0 flex flex-col gap-4">
 
-    <!-- YouTube 埋め込み -->
-    {d.embed_url && (
-      <section class="mb-6">
-        <h2 class="text-sm font-semibold text-gray-500 mb-2">🎬 動画</h2>
-        <div class="aspect-video">
-          <iframe
-            src={d.embed_url}
-            title={d.title}
-            loading="lazy"
-            allowfullscreen
-            class="w-full h-full rounded"
-          />
+      <!-- ステータスバッジ -->
+      <div class="bg-white rounded-xl border border-gray-100 p-4" style="box-shadow: 0 1px 3px rgba(0,0,0,.05);">
+        <p class="text-xs font-semibold text-gray-400 mb-2">ステータス</p>
+        <span class={`inline-block text-sm px-3 py-1 rounded-full border font-medium ${statusColor[d.status] ?? statusColor.pending}`}>
+          {statusLabel[d.status] ?? d.status}
+        </span>
+      </div>
+
+      <!-- タグ一覧 -->
+      {d.suggested_tags && d.suggested_tags.length > 0 && (
+        <div class="bg-white rounded-xl border border-gray-100 p-4" style="box-shadow: 0 1px 3px rgba(0,0,0,.05);">
+          <p class="text-xs font-semibold text-gray-400 mb-2">タグ</p>
+          <div class="flex flex-wrap gap-1.5">
+            {d.suggested_tags.map((tag: string) => (
+              <span class={`text-xs px-2.5 py-1 rounded-full font-medium ${tagColor(tag)}`}>{tag}</span>
+            ))}
+          </div>
         </div>
-      </section>
-    )}
+      )}
 
-    <!-- スクショギャラリー -->
-    {d.screenshots.length > 0 && (
-      <section class="mb-6">
-        <h2 class="text-sm font-semibold text-gray-500 mb-2">📷 スクリーンショット</h2>
-        <div class="grid grid-cols-3 gap-2">
-          {d.screenshots.map((src: string) => (
-            <a href={src} target="_blank">
-              <img src={src} alt="" loading="lazy" class="rounded border hover:opacity-90" />
-            </a>
-          ))}
+      <!-- 判断ボタン -->
+      <div class="bg-white rounded-xl border border-gray-100 p-4" style="box-shadow: 0 1px 3px rgba(0,0,0,.05);">
+        <JudgeButtons itemId={d.id} title={d.title} />
+      </div>
+
+      <!-- ソースリンク -->
+      {d.source_url && d.source_url.startsWith("http") && (
+        <div class="bg-white rounded-xl border border-gray-100 p-4" style="box-shadow: 0 1px 3px rgba(0,0,0,.05);">
+          <p class="text-xs font-semibold text-gray-400 mb-2">ソース</p>
+          <a
+            href={d.source_url}
+            target="_blank"
+            rel="noopener"
+            class="text-xs text-blue-600 hover:underline break-all"
+          >
+            {d.source_url}
+          </a>
         </div>
-      </section>
-    )}
+      )}
 
-    <!-- 詳細要約・文字起こし -->
-    <section class="mb-6 prose prose-sm max-w-none">
-      <h2 class="text-sm font-semibold text-gray-500 mb-2">📖 詳細</h2>
-      <Content />
-    </section>
-
-    <!-- 判断ボタン -->
-    <JudgeButtons itemId={d.id} title={d.title} />
-  </article>
+    </aside>
+  </div>
 </Base>
+
+<style>
+  .prose-custom {
+    font-size: 0.95rem;
+    line-height: 1.85;
+    color: #1F2937;
+  }
+  .prose-custom h2 {
+    font-size: 1.15rem;
+    font-weight: 700;
+    color: #111827;
+    margin-top: 2rem;
+    margin-bottom: 0.75rem;
+    padding-bottom: 0.35rem;
+    border-bottom: 2px solid #EFF6FF;
+  }
+  .prose-custom h3, .prose-custom .ch-head {
+    font-size: 1.05rem;
+    font-weight: 700;
+    color: #1F2937;
+    margin-top: 1.75rem;
+    margin-bottom: 0.5rem;
+    padding-left: 0.6rem;
+    border-left: 4px solid #2563EB;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+  .prose-custom .ts-jump {
+    display: inline-flex;
+    align-items: center;
+    background: #EFF6FF;
+    color: #1D4ED8;
+    border: 1px solid #BFDBFE;
+    border-radius: 999px;
+    padding: 0.15rem 0.6rem;
+    font-size: 0.78rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.15s;
+  }
+  .prose-custom .ts-jump:hover { background: #DBEAFE; }
+  .prose-custom p {
+    margin-bottom: 1rem;
+    text-align: justify;
+  }
+  .prose-custom ul { padding-left: 1.25rem; margin-bottom: 0.75rem; }
+  .prose-custom li { margin-bottom: 0.35rem; }
+  .prose-custom a { color: #2563EB; text-decoration: underline; }
+
+  .prose-custom figure.inline-shot {
+    margin: 1rem 0 1.25rem;
+    display: block;
+  }
+  .prose-custom figure.inline-shot img {
+    width: 100%;
+    max-width: 100%;
+    height: auto;
+    border-radius: 0.75rem;
+    border: 1px solid #E5E7EB;
+    box-shadow: 0 2px 8px rgba(0,0,0,.06);
+    display: block;
+  }
+  .prose-custom details {
+    margin-top: 1.5rem;
+    background: #F9FAFB;
+    border: 1px solid #E5E7EB;
+    border-radius: 0.5rem;
+    padding: 0.75rem 1rem;
+  }
+  .prose-custom details summary {
+    cursor: pointer;
+    font-weight: 600;
+    color: #4B5563;
+  }
+  .prose-custom details[open] summary { margin-bottom: 0.5rem; }
+  .prose-custom details p, .prose-custom details {
+    font-size: 0.8rem;
+    color: #6B7280;
+    line-height: 1.6;
+  }
+</style>
+
+<script is:inline>
+  document.addEventListener("click", (e) => {
+    const btn = e.target.closest(".ts-jump");
+    if (!btn) return;
+    e.preventDefault();
+    const t = parseInt(btn.dataset.t || "0", 10);
+    const player = document.getElementById("yt-player");
+    if (!player) return;
+    const base = player.dataset.base;
+    player.src = `${base}?start=${t}&autoplay=1&enablejsapi=1`;
+    player.scrollIntoView({ behavior: "smooth", block: "start" });
+  });
+</script>

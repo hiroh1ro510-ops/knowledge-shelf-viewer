@@ -1,7 +1,6 @@
 ---
 import { getCollection } from "astro:content";
 import Base from "../layouts/Base.astro";
-import TabNav from "../components/TabNav.astro";
 import ItemCard from "../components/ItemCard.astro";
 import EmptyState from "../components/EmptyState.astro";
 
@@ -9,15 +8,86 @@ const allItems = await getCollection("items");
 const items = allItems.sort(
   (a, b) => new Date(b.data.created_at).getTime() - new Date(a.data.created_at).getTime()
 );
+
+// 全タグを収集
+const allTags = Array.from(
+  new Set(items.flatMap((item) => item.data.suggested_tags ?? []))
+).sort();
 ---
+
 <Base title="本棚 | Knowledge Shelf">
-  <TabNav active="shelf" />
+  <!-- ページタイトル -->
+  <div class="mb-6">
+    <h1 class="text-2xl font-bold text-gray-900">本棚</h1>
+    <p class="text-sm text-gray-500 mt-1">{items.length} 件のアイテム</p>
+  </div>
+
+  <!-- タグフィルターボタン -->
+  {allTags.length > 0 && (
+    <div class="flex flex-wrap gap-2 mb-6" id="tag-filter-bar">
+      <button
+        class="tag-filter-btn px-4 py-1.5 rounded-full text-sm font-medium border border-blue-600 bg-blue-600 text-white transition-colors"
+        data-tag="__all__"
+      >
+        すべて
+      </button>
+      {allTags.map((tag) => (
+        <button
+          class="tag-filter-btn px-4 py-1.5 rounded-full text-sm font-medium border border-gray-200 bg-white text-gray-600 hover:border-blue-400 hover:text-blue-600 transition-colors"
+          data-tag={tag}
+        >
+          {tag}
+        </button>
+      ))}
+    </div>
+  )}
+
+  <!-- アイテムグリッド -->
   {items.length === 0
     ? <EmptyState />
     : (
-      <div class="grid gap-4 sm:grid-cols-2">
+      <div id="items-grid" class="grid gap-5 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
         {items.map((item) => <ItemCard item={item} />)}
       </div>
     )
   }
+
+  <!-- 件数表示 -->
+  <p id="filter-count" class="mt-4 text-xs text-gray-400 text-right hidden"></p>
 </Base>
+
+<script>
+  // タグフィルタリング
+  const filterBtns = document.querySelectorAll<HTMLButtonElement>('.tag-filter-btn');
+  const cards = document.querySelectorAll<HTMLElement>('[data-tags]');
+  const countEl = document.getElementById('filter-count');
+
+  function applyFilter(activeTag: string) {
+    let visible = 0;
+    cards.forEach((card) => {
+      if (activeTag === '__all__') {
+        card.style.display = '';
+        visible++;
+      } else {
+        const tags: string[] = JSON.parse(card.dataset.tags ?? '[]');
+        const show = tags.includes(activeTag);
+        card.style.display = show ? '' : 'none';
+        if (show) visible++;
+      }
+    });
+    if (countEl) {
+      countEl.textContent = `${visible} 件表示中`;
+      countEl.classList.toggle('hidden', activeTag === '__all__');
+    }
+    filterBtns.forEach((btn) => {
+      const isActive = btn.dataset.tag === activeTag;
+      btn.className = isActive
+        ? 'tag-filter-btn px-4 py-1.5 rounded-full text-sm font-medium border border-blue-600 bg-blue-600 text-white transition-colors'
+        : 'tag-filter-btn px-4 py-1.5 rounded-full text-sm font-medium border border-gray-200 bg-white text-gray-600 hover:border-blue-400 hover:text-blue-600 transition-colors';
+    });
+  }
+
+  filterBtns.forEach((btn) => {
+    btn.addEventListener('click', () => applyFilter(btn.dataset.tag ?? '__all__'));
+  });
+</script>

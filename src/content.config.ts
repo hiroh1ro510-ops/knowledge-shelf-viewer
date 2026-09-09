@@ -14,7 +14,7 @@ const items = defineCollection({
     suggested_tags: z.array(z.string()).default([]),
     one_line: z.string(),
     three_lines: z.array(z.string()).default([]),
-    screenshots: z.array(z.string()).default([]),
+    screenshots: z.union([z.array(z.string()), z.null()]).transform(v => v ?? []).default([]),
     has_transcript: z.boolean().default(false),
   }),
 });
