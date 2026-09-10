@@ -78,21 +78,23 @@ const isVideo = isYoutube || isVimeo;
         )}
       </div>
 
-      <!-- 動画埋め込み（YouTube / Vimeo） -->
+      <!-- 動画埋め込み（YouTube / Vimeo）: スクロールで右下ミニプレイヤーに縮小 -->
       {isVideo && d.embed_url && (
-        <div class="bg-white rounded-xl border border-gray-100 overflow-hidden sticky top-4 z-10" style="box-shadow: 0 1px 3px rgba(0,0,0,.05);">
-          <div class="w-full" style="position: relative; padding-bottom: 56.25%;">
-            <iframe
-              id="yt-player"
-              data-base={d.embed_url}
-              data-kind={isVimeo ? "vimeo" : "youtube"}
-              src={isVimeo ? d.embed_url : `${d.embed_url}?enablejsapi=1`}
-              title={d.title}
-              loading="lazy"
-              allowfullscreen
-              allow="autoplay; encrypted-media"
-              style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; border: 0;"
-            />
+        <div id="video-anchor" class="video-anchor">
+          <div id="video-box" class="video-box bg-white rounded-xl border border-gray-100 overflow-hidden" style="box-shadow: 0 1px 3px rgba(0,0,0,.05);">
+            <button id="video-close" class="video-close" type="button" title="ミニプレイヤーを閉じる" aria-label="閉じる">×</button>
+            <div class="video-ratio">
+              <iframe
+                id="yt-player"
+                data-base={d.embed_url}
+                data-kind={isVimeo ? "vimeo" : "youtube"}
+                src={isVimeo ? d.embed_url : `${d.embed_url}?enablejsapi=1`}
+                title={d.title}
+                loading="lazy"
+                allowfullscreen
+                allow="autoplay; encrypted-media; picture-in-picture"
+              />
+            </div>
           </div>
         </div>
       )}
@@ -170,6 +172,38 @@ const isVideo = isYoutube || isVimeo;
 </Base>
 
 <style>
+  /* 動画: 通常時はフロー内、スクロールで右下ミニプレイヤー */
+  .video-anchor { position: relative; }
+  .video-ratio { position: relative; width: 100%; padding-bottom: 56.25%; }
+  .video-ratio iframe { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; }
+  .video-close { display: none; }
+  .video-box.is-mini {
+    position: fixed;
+    right: 1rem;
+    bottom: 1rem;
+    width: min(380px, calc(100vw - 2rem));
+    z-index: 50;
+    border-radius: 0.75rem;
+    box-shadow: 0 8px 30px rgba(0,0,0,.25) !important;
+  }
+  .video-box.is-mini .video-close {
+    display: flex;
+    position: absolute;
+    top: -0.6rem;
+    left: -0.6rem;
+    width: 1.6rem;
+    height: 1.6rem;
+    align-items: center;
+    justify-content: center;
+    border-radius: 999px;
+    background: #111827;
+    color: #fff;
+    border: 2px solid #fff;
+    font-size: 0.9rem;
+    line-height: 1;
+    cursor: pointer;
+    z-index: 51;
+  }
   .prose-custom {
     font-size: 0.95rem;
     line-height: 1.85;
@@ -252,6 +286,51 @@ const isVideo = isYoutube || isVimeo;
 </style>
 
 <script is:inline>
+  (() => {
+    const anchor = document.getElementById("video-anchor");
+    const box = document.getElementById("video-box");
+    const closeBtn = document.getElementById("video-close");
+    if (!anchor || !box) return;
+    let dismissed = false;
+    let mini = false;
+
+    const setMini = (on) => {
+      if (on === mini) return;
+      mini = on;
+      if (on) {
+        // フロー内の高さを保持してレイアウトが跳ねないようにする
+        anchor.style.height = box.offsetHeight + "px";
+        box.classList.add("is-mini");
+      } else {
+        box.classList.remove("is-mini");
+        anchor.style.height = "";
+      }
+    };
+
+    const io = new IntersectionObserver((entries) => {
+      const e = entries[0];
+      // 動画枠が画面からほぼ消えたらミニ化、戻ったら元に戻す
+      if (e.isIntersecting && e.intersectionRatio > 0.05) {
+        setMini(false);
+      } else if (!dismissed) {
+        setMini(true);
+      }
+    }, { threshold: [0, 0.05, 0.5] });
+    io.observe(anchor);
+
+    closeBtn?.addEventListener("click", () => {
+      dismissed = true;
+      setMini(false);
+    });
+
+    // 章ジャンプで再生を始めたら、閉じていてもミニプレイヤーを復帰させる
+    document.addEventListener("ts-jump", () => {
+      dismissed = false;
+      const r = anchor.getBoundingClientRect();
+      if (r.bottom < 0 || r.top > window.innerHeight) setMini(true);
+    });
+  })();
+
   document.addEventListener("click", (e) => {
     const btn = e.target.closest(".ts-jump");
     if (!btn) return;
@@ -259,6 +338,7 @@ const isVideo = isYoutube || isVimeo;
     const t = parseInt(btn.dataset.t || "0", 10);
     const player = document.getElementById("yt-player");
     if (!player) return;
+    document.dispatchEvent(new Event("ts-jump"));
     const base = player.dataset.base;
     if (player.dataset.kind === "vimeo") {
       const sep = base.includes("?") ? "&" : "?";
@@ -266,6 +346,6 @@ const isVideo = isYoutube || isVimeo;
     } else {
       player.src = `${base}?start=${t}&autoplay=1&enablejsapi=1`;
     }
-    player.scrollIntoView({ behavior: "smooth", block: "start" });
+    // 本文位置を維持したまま右下のミニプレイヤーで再生する
   });
 </script>
