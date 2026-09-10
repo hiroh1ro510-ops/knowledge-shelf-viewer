@@ -13,7 +13,7 @@ const d = item.data;
 const { Content } = await render(item);
 
 const typeIcon: Record<string, string> = {
-  youtube: "🎬", pdf: "📄", web: "🌐", note: "✍️", memo: "📝",
+  youtube: "🎬", vimeo: "🎥", pdf: "📄", web: "🌐", note: "✍️", memo: "📝",
 };
 
 const statusColor: Record<string, string> = {
@@ -45,6 +45,8 @@ function tagColor(tag: string): string {
 
 const dateStr = d.created_at ? d.created_at.slice(0, 10) : "";
 const isYoutube = d.source_type === "youtube";
+const isVimeo = d.source_type === "vimeo";
+const isVideo = isYoutube || isVimeo;
 ---
 
 <Base title={`${d.title} | Knowledge Shelf`}>
@@ -76,14 +78,15 @@ const isYoutube = d.source_type === "youtube";
         )}
       </div>
 
-      <!-- YouTube 埋め込み -->
-      {isYoutube && d.embed_url && (
+      <!-- 動画埋め込み（YouTube / Vimeo） -->
+      {isVideo && d.embed_url && (
         <div class="bg-white rounded-xl border border-gray-100 overflow-hidden sticky top-4 z-10" style="box-shadow: 0 1px 3px rgba(0,0,0,.05);">
           <div class="w-full" style="position: relative; padding-bottom: 56.25%;">
             <iframe
               id="yt-player"
               data-base={d.embed_url}
-              src={`${d.embed_url}?enablejsapi=1`}
+              data-kind={isVimeo ? "vimeo" : "youtube"}
+              src={isVimeo ? d.embed_url : `${d.embed_url}?enablejsapi=1`}
               title={d.title}
               loading="lazy"
               allowfullscreen
@@ -257,7 +260,12 @@ const isYoutube = d.source_type === "youtube";
     const player = document.getElementById("yt-player");
     if (!player) return;
     const base = player.dataset.base;
-    player.src = `${base}?start=${t}&autoplay=1&enablejsapi=1`;
+    if (player.dataset.kind === "vimeo") {
+      const sep = base.includes("?") ? "&" : "?";
+      player.src = `${base}${sep}autoplay=1#t=${t}s`;
+    } else {
+      player.src = `${base}?start=${t}&autoplay=1&enablejsapi=1`;
+    }
     player.scrollIntoView({ behavior: "smooth", block: "start" });
   });
 </script>

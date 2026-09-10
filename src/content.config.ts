@@ -6,7 +6,7 @@ const items = defineCollection({
   schema: z.object({
     id: z.string(),
     title: z.string(),
-    source_type: z.enum(["youtube", "pdf", "web", "note", "memo"]),
+    source_type: z.enum(["youtube", "vimeo", "pdf", "web", "note", "memo"]),
     source_url: z.string(),
     embed_url: z.string().optional().default(""),
     created_at: z.string(),
