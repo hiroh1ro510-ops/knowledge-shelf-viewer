@@ -5,3 +5,9 @@ dist/
 .env
 .DS_Store
 *.log
+.env.*
+!.env.example
+.dev.vars
+*.pem
+*key*.json
+credentials*.json
